@@ -10,6 +10,8 @@ export default function AdminPage() {
   const [content, setContent] = useState('')
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [requiresConfirmation, setRequiresConfirmation] = useState(true)
+  const [requiresRsvp, setRequiresRsvp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -64,7 +66,9 @@ export default function AdminPage() {
         image_url: imageUrls[0] || null,
         image_urls: imageUrls,
         type,
-        organization_id: null
+        organization_id: null,
+        requires_confirmation: type === 'circular' ? requiresConfirmation : false,
+        requires_rsvp: type === 'circular' ? requiresRsvp : false,
       })
 
     if (error) {
@@ -75,10 +79,21 @@ export default function AdminPage() {
       setContent('')
       setImages([])
       setImagePreviews([])
+      setRequiresConfirmation(true)
+      setRequiresRsvp(false)
       setTimeout(() => setSuccess(false), 3000)
     }
     setLoading(false)
   }
+
+  const toggleStyle = (active: boolean) => ({
+    flex: 1, padding: '10px', fontSize: '14px', fontWeight: '500' as const,
+    background: active ? '#185FA5' : '#f5f5f5',
+    color: active ? '#fff' : '#555',
+    border: '1.5px solid' as const,
+    borderColor: active ? '#185FA5' : '#ddd',
+    borderRadius: '8px', cursor: 'pointer' as const
+  })
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
@@ -117,20 +132,47 @@ export default function AdminPage() {
               種別
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setType('notice')}
-                style={{ flex: 1, padding: '12px', fontSize: '15px', fontWeight: '500', background: type === 'notice' ? '#185FA5' : '#f5f5f5', color: type === 'notice' ? '#fff' : '#555', border: '1.5px solid', borderColor: type === 'notice' ? '#185FA5' : '#ddd', borderRadius: '8px', cursor: 'pointer' }}
-              >
+              <button onClick={() => setType('notice')} style={toggleStyle(type === 'notice')}>
                 📢 お知らせ
               </button>
-              <button
-                onClick={() => setType('circular')}
-                style={{ flex: 1, padding: '12px', fontSize: '15px', fontWeight: '500', background: type === 'circular' ? '#185FA5' : '#f5f5f5', color: type === 'circular' ? '#fff' : '#555', border: '1.5px solid', borderColor: type === 'circular' ? '#185FA5' : '#ddd', borderRadius: '8px', cursor: 'pointer' }}
-              >
+              <button onClick={() => setType('circular')} style={toggleStyle(type === 'circular')}>
                 📋 回覧板
               </button>
             </div>
           </div>
+
+          {/* 回覧板オプション */}
+          {type === 'circular' && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e0e8f0', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: '500', color: '#555', marginBottom: '12px' }}>回覧板オプション</div>
+
+              {/* 確認ボタン */}
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '13px', color: '#888', marginBottom: '6px' }}>既読確認</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setRequiresConfirmation(true)} style={toggleStyle(requiresConfirmation)}>
+                    ✅ 確認ボタンあり
+                  </button>
+                  <button onClick={() => setRequiresConfirmation(false)} style={toggleStyle(!requiresConfirmation)}>
+                    📖 読むだけ
+                  </button>
+                </div>
+              </div>
+
+              {/* 出欠回答 */}
+              <div>
+                <div style={{ fontSize: '13px', color: '#888', marginBottom: '6px' }}>出欠回答</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setRequiresRsvp(true)} style={toggleStyle(requiresRsvp)}>
+                    🙋 出欠を募る
+                  </button>
+                  <button onClick={() => setRequiresRsvp(false)} style={toggleStyle(!requiresRsvp)}>
+                    不要
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* タイトル */}
           <div style={{ marginBottom: '16px' }}>
@@ -160,7 +202,7 @@ export default function AdminPage() {
             />
           </div>
 
-          {/* 画像アップロード（複数） */}
+          {/* 画像アップロード */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', fontSize: '15px', fontWeight: '500', marginBottom: '6px', color: '#1a1a1a' }}>
               画像・写真 <span style={{ fontSize: '13px', color: '#888', fontWeight: '400' }}>（最大5枚・任意）</span>
@@ -169,17 +211,10 @@ export default function AdminPage() {
             {images.length < 5 && (
               <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '16px', fontSize: '15px', background: '#f5f5f5', color: '#555', border: '1.5px dashed #ddd', borderRadius: '8px', cursor: 'pointer', boxSizing: 'border-box', marginBottom: '12px' }}>
                 📷 写真を追加する（{images.length}/5枚）
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  style={{ display: 'none' }}
-                />
+                <input type="file" accept="image/*" multiple onChange={handleImageChange} style={{ display: 'none' }} />
               </label>
             )}
 
-            {/* プレビュー */}
             {imagePreviews.map((preview, index) => (
               <div key={index} style={{ position: 'relative', marginBottom: '8px' }}>
                 <img src={preview} alt={`画像${index + 1}`} style={{ width: '100%', borderRadius: '8px', border: '0.5px solid #ddd' }} />

@@ -13,13 +13,19 @@ type Notice = {
   image_url: string | null
   image_urls: string[]
   created_at: string
+  requires_confirmation: boolean
+  requires_rsvp: boolean
 }
+
+type Rsvp = 'attending' | 'absent' | 'undecided' | null
 
 export default function NoticeDetailPage() {
   const [notice, setNotice] = useState<Notice | null>(null)
   const [loading, setLoading] = useState(true)
   const [confirmed, setConfirmed] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [rsvp, setRsvp] = useState<Rsvp>(null)
+  const [rsvping, setRsvping] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -29,13 +35,9 @@ export default function NoticeDetailPage() {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
-      }
+      if (!session) { router.push('/login'); return }
       setUserId(session.user.id)
 
-      // 管理者判定
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -59,11 +61,14 @@ export default function NoticeDetailPage() {
     if (data?.type === 'circular') {
       const { data: conf } = await supabase
         .from('circular_confirmations')
-        .select('id')
+        .select('id, rsvp')
         .eq('notice_id', params.id)
         .eq('user_id', uid)
         .single()
-      setConfirmed(!!conf)
+      if (conf) {
+        setConfirmed(true)
+        setRsvp(conf.rsvp || null)
+      }
     }
     setLoading(false)
   }
@@ -76,6 +81,28 @@ export default function NoticeDetailPage() {
       .insert({ notice_id: notice.id, user_id: userId })
     setConfirmed(true)
     setConfirming(false)
+  }
+
+  const handleRsvp = async (answer: 'attending' | 'absent' | 'undecided') => {
+    if (!userId || !notice) return
+    setRsvping(true)
+
+    if (confirmed) {
+      // 既に確認済みの場合はupsert
+      await supabase
+        .from('circular_confirmations')
+        .update({ rsvp: answer })
+        .eq('notice_id', notice.id)
+        .eq('user_id', userId)
+    } else {
+      // 未確認の場合はinsert（確認も同時に完了）
+      await supabase
+        .from('circular_confirmations')
+        .insert({ notice_id: notice.id, user_id: userId, rsvp: answer })
+      setConfirmed(true)
+    }
+    setRsvp(answer)
+    setRsvping(false)
   }
 
   const handleDelete = async () => {
@@ -96,6 +123,13 @@ export default function NoticeDetailPage() {
     if (notice.image_urls && notice.image_urls.length > 0) return notice.image_urls
     if (notice.image_url) return [notice.image_url]
     return []
+  }
+
+  const rsvpLabel = (r: Rsvp) => {
+    if (r === 'attending') return '✅ 出席'
+    if (r === 'absent') return '❌ 欠席'
+    if (r === 'undecided') return '🤔 未定'
+    return ''
   }
 
   if (loading) return (
@@ -122,8 +156,6 @@ export default function NoticeDetailPage() {
         <span style={{ color: '#fff', fontSize: '18px', fontWeight: '500', flex: 1 }}>
           {notice.type === 'circular' ? '📋 回覧板' : '📢 お知らせ'}
         </span>
-
-        {/* 管理者メニュー */}
         {isAdmin && (
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -147,7 +179,7 @@ export default function NoticeDetailPage() {
       <div style={{ padding: '20px 16px', maxWidth: '600px', margin: '0 auto', background: '#fff', minHeight: 'calc(100vh - 52px)' }}>
 
         <div style={{ display: 'inline-block', background: notice.type === 'circular' ? '#EAF3DE' : '#E6F1FB', color: notice.type === 'circular' ? '#3B6D11' : '#0C447C', fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px', marginBottom: '12px' }}>
-          {notice.type === 'circular' ? '要確認' : '新着'}
+          {notice.type === 'circular' ? '回覧板' : 'お知らせ'}
         </div>
 
         <div style={{ fontSize: '20px', fontWeight: '500', color: '#1a1a1a', marginBottom: '8px' }}>{notice.title}</div>
@@ -155,7 +187,6 @@ export default function NoticeDetailPage() {
           {formatDate(notice.created_at)}　町内会事務局
         </div>
 
-        {/* 複数画像 */}
         {images.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
             {images.map((url, index) => (
@@ -177,8 +208,41 @@ export default function NoticeDetailPage() {
           </div>
         )}
 
-        {/* 回覧板の確認ボタン */}
-        {notice.type === 'circular' && (
+        {/* 出欠回答 */}
+        {notice.type === 'circular' && notice.requires_rsvp && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '15px', fontWeight: '500', color: '#1a1a1a', marginBottom: '10px' }}>
+              🙋 出欠を回答してください
+            </div>
+            {rsvp && (
+              <div style={{ background: '#E6F1FB', color: '#0C447C', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', marginBottom: '10px' }}>
+                現在の回答：<strong>{rsvpLabel(rsvp)}</strong>（変更可能）
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['attending', 'absent', 'undecided'] as const).map((answer) => (
+                <button
+                  key={answer}
+                  onClick={() => handleRsvp(answer)}
+                  disabled={rsvping}
+                  style={{
+                    flex: 1, padding: '12px 4px', fontSize: '14px', fontWeight: '500',
+                    background: rsvp === answer ? (answer === 'attending' ? '#3B6D11' : answer === 'absent' ? '#A32D2D' : '#185FA5') : '#f5f5f5',
+                    color: rsvp === answer ? '#fff' : '#555',
+                    border: '1.5px solid',
+                    borderColor: rsvp === answer ? 'transparent' : '#ddd',
+                    borderRadius: '8px', cursor: rsvping ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {answer === 'attending' ? '✅ 出席' : answer === 'absent' ? '❌ 欠席' : '🤔 未定'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 確認ボタン */}
+        {notice.type === 'circular' && notice.requires_confirmation && !notice.requires_rsvp && (
           <div style={{ marginBottom: '16px' }}>
             {confirmed ? (
               <div style={{ background: '#EAF3DE', color: '#3B6D11', padding: '16px', borderRadius: '8px', fontSize: '16px', fontWeight: '500', textAlign: 'center' }}>
