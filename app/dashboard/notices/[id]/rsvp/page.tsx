@@ -36,12 +36,14 @@ export default function RsvpSummaryPage() {
   }, [])
 
   const fetchData = async () => {
-    const [{ data: noticeData }, { data: rsvpData }] = await Promise.all([
+    const [{ data: noticeData }, { data: rsvpData, error }] = await Promise.all([
       supabase.from('notices').select('id, title, rsvp_deadline').eq('id', params.id).single(),
       supabase.from('circular_confirmations')
         .select('user_id, rsvp, profiles(name)')
         .eq('notice_id', params.id)
     ])
+    console.log('rsvpData:', rsvpData)
+    console.log('error:', error)
     setNotice(noticeData)
     setRecords(rsvpData || [])
     setLoading(false)
