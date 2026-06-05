@@ -10,10 +10,15 @@ type Notice = {
   rsvp_deadline: string | null
 }
 
+type RsvpRecord = {
+  user_id: string
+  rsvp: string | null
+  name: string
+}
+
 export default function RsvpSummaryPage() {
   const [notice, setNotice] = useState<Notice | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [records, setRecords] = useState<any[]>([])
+  const [records, setRecords] = useState<RsvpRecord[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const params = useParams()
@@ -36,16 +41,25 @@ export default function RsvpSummaryPage() {
   }, [])
 
   const fetchData = async () => {
-    const [{ data: noticeData }, { data: rsvpData, error }] = await Promise.all([
+    const [{ data: noticeData }, { data: rsvpData }, { data: profilesData }] = await Promise.all([
       supabase.from('notices').select('id, title, rsvp_deadline').eq('id', params.id).single(),
-      supabase.from('circular_confirmations')
-        .select('user_id, rsvp, profiles(name)')
-        .eq('notice_id', params.id)
+      supabase.from('circular_confirmations').select('user_id, rsvp').eq('notice_id', params.id),
+      supabase.from('profiles').select('id, name')
     ])
-    console.log('rsvpData:', rsvpData)
-    console.log('error:', error)
+
     setNotice(noticeData)
-    setRecords(rsvpData || [])
+
+    // プロフィールをMapに変換
+    const profileMap = new Map((profilesData || []).map((p: { id: string; name: string }) => [p.id, p.name]))
+
+    // rsvpDataとprofilesを結合
+    const merged = (rsvpData || []).map((r: { user_id: string; rsvp: string | null }) => ({
+      user_id: r.user_id,
+      rsvp: r.rsvp,
+      name: profileMap.get(r.user_id) || '名前未設定'
+    }))
+
+    setRecords(merged)
     setLoading(false)
   }
 
@@ -135,7 +149,7 @@ export default function RsvpSummaryPage() {
                   👤
                 </div>
                 <div style={{ fontSize: '15px', color: '#1a1a1a' }}>
-                  {r.profiles?.name ?? '名前未設定'}
+                  {r.name}
                 </div>
               </div>
             ))}
