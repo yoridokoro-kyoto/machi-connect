@@ -10,6 +10,8 @@ type Notice = {
   content: string
   type: 'notice' | 'circular'
   created_at: string
+  requires_confirmation: boolean
+  requires_rsvp: boolean
 }
 
 export default function DashboardPage() {
@@ -17,20 +19,20 @@ export default function DashboardPage() {
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'notice' | 'circular'>('notice')
-  const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
-      }
-      setUserId(session.user.id)
+      if (!session) { router.push('/login'); return }
       fetchAll(session.user.id)
     }
     checkAuth()
+
+    // URLパラメータでタブを切り替え
+    const params = new URLSearchParams(window.location.search)
+    const tab = params.get('tab')
+    if (tab === 'circular' || tab === 'notice') setActiveTab(tab)
   }, [])
 
   const fetchAll = async (uid: string) => {
@@ -54,6 +56,20 @@ export default function DashboardPage() {
   }
 
   const filtered = notices.filter((n) => n.type === activeTab)
+
+  const getBadge = (notice: Notice) => {
+    if (notice.type === 'notice') {
+      return { label: '新着', bg: '#E6F1FB', color: '#0C447C' }
+    }
+    const isConfirmed = confirmedIds.has(notice.id)
+    if (isConfirmed) {
+      return { label: '✅ 確認済み', bg: '#EAF3DE', color: '#3B6D11' }
+    }
+    if (!notice.requires_confirmation) {
+      return { label: '📖 読んでね', bg: '#FFF8E6', color: '#8B6000' }
+    }
+    return { label: '要確認', bg: '#FCEBEB', color: '#A32D2D' }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
@@ -107,23 +123,18 @@ export default function DashboardPage() {
           </div>
         ) : (
           filtered.map((notice) => {
+            const badge = getBadge(notice)
             const isConfirmed = confirmedIds.has(notice.id)
             return (
               <div
                 key={notice.id}
-                style={{ background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '12px', border: `0.5px solid ${isConfirmed ? '#C0DD97' : '#e0e0e0'}`, cursor: 'pointer', opacity: isConfirmed ? 0.8 : 1 }}
                 onClick={() => router.push(`/dashboard/notices/${notice.id}`)}
+                style={{ background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '12px', border: `0.5px solid ${isConfirmed ? '#C0DD97' : '#e0e0e0'}`, cursor: 'pointer', opacity: isConfirmed ? 0.8 : 1 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  {activeTab === 'circular' ? (
-                    isConfirmed ? (
-                      <span style={{ display: 'inline-block', background: '#EAF3DE', color: '#3B6D11', fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px' }}>✅ 確認済み</span>
-                    ) : (
-                      <span style={{ display: 'inline-block', background: '#FCEBEB', color: '#A32D2D', fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px' }}>要確認</span>
-                    )
-                  ) : (
-                    <span style={{ display: 'inline-block', background: '#E6F1FB', color: '#0C447C', fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px' }}>新着</span>
-                  )}
+                  <span style={{ display: 'inline-block', background: badge.bg, color: badge.color, fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px' }}>
+                    {badge.label}
+                  </span>
                 </div>
                 <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a1a1a', marginBottom: '4px' }}>{notice.title}</div>
                 <div style={{ fontSize: '12px', color: '#888' }}>{formatDate(notice.created_at)}</div>

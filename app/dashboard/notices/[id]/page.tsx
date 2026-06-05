@@ -88,14 +88,12 @@ export default function NoticeDetailPage() {
     setRsvping(true)
 
     if (confirmed) {
-      // 既に確認済みの場合はupsert
       await supabase
         .from('circular_confirmations')
         .update({ rsvp: answer })
         .eq('notice_id', notice.id)
         .eq('user_id', userId)
     } else {
-      // 未確認の場合はinsert（確認も同時に完了）
       await supabase
         .from('circular_confirmations')
         .insert({ notice_id: notice.id, user_id: userId, rsvp: answer })
@@ -111,7 +109,7 @@ export default function NoticeDetailPage() {
     if (!ok) return
     setDeleting(true)
     await supabase.from('notices').delete().eq('id', notice.id)
-    router.push('/dashboard')
+    router.push(`/dashboard?tab=${notice.type}`)
   }
 
   const formatDate = (dateStr: string) => {
@@ -148,14 +146,19 @@ export default function NoticeDetailPage() {
       {/* ヘッダー */}
       <div style={{ background: '#185FA5', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={() => router.push(`/dashboard?tab=${notice.type}`)}
           style={{ background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', padding: '0' }}
         >
           ←
         </button>
-        <span style={{ color: '#fff', fontSize: '18px', fontWeight: '500', flex: 1 }}>
-          {notice.type === 'circular' ? '📋 回覧板' : '📢 お知らせ'}
-        </span>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: '#fff', fontSize: '18px', fontWeight: '500' }}>
+            {notice.type === 'circular' ? '📋 回覧板' : '📢 お知らせ'}
+          </div>
+          <div style={{ color: '#B5D4F4', fontSize: '12px', marginTop: '2px' }}>
+            {notice.type === 'circular' ? '回覧板一覧へ戻る' : 'お知らせ一覧へ戻る'}
+          </div>
+        </div>
         {isAdmin && (
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
