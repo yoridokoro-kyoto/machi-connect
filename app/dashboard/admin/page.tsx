@@ -15,6 +15,7 @@ export default function AdminPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [requiresConfirmation, setRequiresConfirmation] = useState(true)
   const [requiresRsvp, setRequiresRsvp] = useState(false)
+  const [rsvpDeadline, setRsvpDeadline] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -39,6 +40,10 @@ export default function AdminPage() {
   const handleNext = () => {
     if (!title.trim()) {
       setError('タイトルを入力してください')
+      return
+    }
+    if (requiresRsvp && !rsvpDeadline) {
+      setError('出欠回答の期限を設定してください')
       return
     }
     setError('')
@@ -75,6 +80,7 @@ export default function AdminPage() {
         organization_id: null,
         requires_confirmation: type === 'circular' ? requiresConfirmation : false,
         requires_rsvp: type === 'circular' ? requiresRsvp : false,
+        rsvp_deadline: type === 'circular' && requiresRsvp ? rsvpDeadline : null,
       })
 
     if (error) {
@@ -95,16 +101,24 @@ export default function AdminPage() {
     borderRadius: '8px', cursor: 'pointer' as const
   })
 
+  const backButtonStyle = {
+    background: 'rgba(255,255,255,0.2)',
+    border: 'none',
+    color: '#fff',
+    fontSize: '14px',
+    fontWeight: '500' as const,
+    padding: '8px 14px',
+    borderRadius: '8px',
+    cursor: 'pointer' as const,
+  }
+
   // 確認画面
   if (step === 'confirm') {
     return (
       <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
         <div style={{ background: '#185FA5', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={() => setStep('input')}
-            style={{ background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', padding: '0' }}
-          >
-            ←
+          <button onClick={() => setStep('input')} style={backButtonStyle}>
+            ← 修正する
           </button>
           <span style={{ color: '#fff', fontSize: '18px', fontWeight: '500' }}>内容を確認</span>
         </div>
@@ -118,31 +132,26 @@ export default function AdminPage() {
 
           <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '0.5px solid #e0e0e0', marginBottom: '16px' }}>
 
-            {/* 種別 */}
             <div style={{ display: 'inline-block', background: type === 'circular' ? '#EAF3DE' : '#E6F1FB', color: type === 'circular' ? '#3B6D11' : '#0C447C', fontSize: '12px', fontWeight: '500', padding: '3px 10px', borderRadius: '6px', marginBottom: '12px' }}>
               {type === 'circular' ? '📋 回覧板' : '📢 お知らせ'}
             </div>
 
-            {/* 回覧板オプション */}
             {type === 'circular' && (
               <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '13px', color: '#555' }}>
                 {requiresConfirmation ? '✅ 確認ボタンあり' : '📖 読むだけ'}
                 　／　
-                {requiresRsvp ? '🙋 出欠あり' : '出欠なし'}
+                {requiresRsvp ? `🙋 出欠あり（期限：${rsvpDeadline}）` : '出欠なし'}
               </div>
             )}
 
-            {/* タイトル */}
             <div style={{ fontSize: '20px', fontWeight: '500', color: '#1a1a1a', marginBottom: '8px' }}>{title}</div>
 
-            {/* 本文 */}
             {content && (
               <div style={{ fontSize: '15px', color: '#333', lineHeight: '1.8', whiteSpace: 'pre-wrap', marginBottom: '12px' }}>
                 {content}
               </div>
             )}
 
-            {/* 画像プレビュー */}
             {imagePreviews.length > 0 && (
               <div>
                 {imagePreviews.map((preview, index) => (
@@ -152,7 +161,6 @@ export default function AdminPage() {
             )}
           </div>
 
-          {/* ボタン */}
           <button
             onClick={handleSubmit}
             disabled={loading}
@@ -176,11 +184,8 @@ export default function AdminPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
       <div style={{ background: '#185FA5', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <button
-          onClick={() => router.push('/dashboard')}
-          style={{ background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', padding: '0' }}
-        >
-          ←
+        <button onClick={() => router.push('/dashboard')} style={backButtonStyle}>
+          ← 一覧へ
         </button>
         <span style={{ color: '#fff', fontSize: '18px', fontWeight: '500' }}>投稿する</span>
       </div>
@@ -207,6 +212,7 @@ export default function AdminPage() {
           {type === 'circular' && (
             <div style={{ background: '#f8fafc', border: '1px solid #e0e8f0', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
               <div style={{ fontSize: '14px', fontWeight: '500', color: '#555', marginBottom: '12px' }}>回覧板オプション</div>
+
               <div style={{ marginBottom: '12px' }}>
                 <div style={{ fontSize: '13px', color: '#888', marginBottom: '6px' }}>既読確認</div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -214,12 +220,26 @@ export default function AdminPage() {
                   <button onClick={() => setRequiresConfirmation(false)} style={toggleStyle(!requiresConfirmation)}>📖 読むだけ</button>
                 </div>
               </div>
+
               <div>
                 <div style={{ fontSize: '13px', color: '#888', marginBottom: '6px' }}>出欠回答</div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: requiresRsvp ? '12px' : '0' }}>
                   <button onClick={() => setRequiresRsvp(true)} style={toggleStyle(requiresRsvp)}>🙋 出欠を募る</button>
-                  <button onClick={() => setRequiresRsvp(false)} style={toggleStyle(!requiresRsvp)}>不要</button>
+                  <button onClick={() => { setRequiresRsvp(false); setRsvpDeadline('') }} style={toggleStyle(!requiresRsvp)}>不要</button>
                 </div>
+
+                {requiresRsvp && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ fontSize: '13px', color: '#888', marginBottom: '6px' }}>回答期限 <span style={{ color: '#A32D2D' }}>*必須</span></div>
+                    <input
+                      type="date"
+                      value={rsvpDeadline}
+                      onChange={(e) => setRsvpDeadline(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      style={{ width: '100%', padding: '12px', fontSize: '16px', border: '1.5px solid #ddd', borderRadius: '8px', outline: 'none', boxSizing: 'border-box' as const, color: '#1a1a1a', background: '#fff' }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -232,7 +252,7 @@ export default function AdminPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="例：6月の回覧板（市役所より）"
-              style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '1.5px solid #ddd', borderRadius: '8px', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '1.5px solid #ddd', borderRadius: '8px', outline: 'none', boxSizing: 'border-box' as const, color: '#1a1a1a' }}
             />
           </div>
 
@@ -246,7 +266,7 @@ export default function AdminPage() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="補足説明があれば入力してください"
               rows={4}
-              style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '1.5px solid #ddd', borderRadius: '8px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: '1.8' }}
+              style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '1.5px solid #ddd', borderRadius: '8px', outline: 'none', resize: 'vertical', boxSizing: 'border-box' as const, lineHeight: '1.8', color: '#1a1a1a' }}
             />
           </div>
 
@@ -256,7 +276,7 @@ export default function AdminPage() {
               画像・写真 <span style={{ fontSize: '13px', color: '#888', fontWeight: '400' }}>（最大5枚・任意）</span>
             </label>
             {images.length < 5 && (
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '16px', fontSize: '15px', background: '#f5f5f5', color: '#555', border: '1.5px dashed #ddd', borderRadius: '8px', cursor: 'pointer', boxSizing: 'border-box', marginBottom: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '16px', fontSize: '15px', background: '#f5f5f5', color: '#555', border: '1.5px dashed #ddd', borderRadius: '8px', cursor: 'pointer', boxSizing: 'border-box' as const, marginBottom: '12px' }}>
                 📷 写真を追加する（{images.length}/5枚）
                 <input type="file" accept="image/*" multiple onChange={handleImageChange} style={{ display: 'none' }} />
               </label>

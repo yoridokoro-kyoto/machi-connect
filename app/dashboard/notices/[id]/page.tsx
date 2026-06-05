@@ -15,6 +15,7 @@ type Notice = {
   created_at: string
   requires_confirmation: boolean
   requires_rsvp: boolean
+  rsvp_deadline: string | null
 }
 
 type Rsvp = 'attending' | 'absent' | 'undecided' | null
@@ -130,6 +131,11 @@ export default function NoticeDetailPage() {
     return ''
   }
 
+  const isDeadlinePassed = (deadline: string | null) => {
+    if (!deadline) return false
+    return new Date(deadline) < new Date(new Date().toDateString())
+  }
+
   if (loading) return (
     <div style={{ textAlign: 'center', padding: '48px', color: '#888' }}>読み込み中...</div>
   )
@@ -139,6 +145,18 @@ export default function NoticeDetailPage() {
   )
 
   const images = getImages(notice)
+  const deadlinePassed = isDeadlinePassed(notice.rsvp_deadline)
+
+  const backButtonStyle = {
+    background: 'rgba(255,255,255,0.2)',
+    border: 'none',
+    color: '#fff',
+    fontSize: '14px',
+    fontWeight: '500' as const,
+    padding: '8px 14px',
+    borderRadius: '8px',
+    cursor: 'pointer' as const,
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
@@ -147,20 +165,21 @@ export default function NoticeDetailPage() {
       <div style={{ background: '#185FA5', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button
           onClick={() => router.push(`/dashboard?tab=${notice.type}`)}
-          style={{ background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', padding: '0' }}
+          style={backButtonStyle}
         >
-          ←
+          ← {notice.type === 'circular' ? '回覧板一覧' : 'お知らせ一覧'}
         </button>
-        <div style={{ flex: 1 }}>
-          <div style={{ color: '#fff', fontSize: '18px', fontWeight: '500' }}>
-            {notice.type === 'circular' ? '📋 回覧板' : '📢 お知らせ'}
-          </div>
-          <div style={{ color: '#B5D4F4', fontSize: '12px', marginTop: '2px' }}>
-            {notice.type === 'circular' ? '回覧板一覧へ戻る' : 'お知らせ一覧へ戻る'}
-          </div>
-        </div>
+        <div style={{ flex: 1 }} />
         {isAdmin && (
           <div style={{ display: 'flex', gap: '8px' }}>
+            {notice.requires_rsvp && (
+              <button
+                onClick={() => router.push(`/dashboard/notices/${notice.id}/rsvp`)}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', fontSize: '14px', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                📊 集計
+              </button>
+            )}
             <button
               onClick={() => router.push(`/dashboard/notices/${notice.id}/edit`)}
               style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', fontSize: '14px', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}
@@ -214,33 +233,50 @@ export default function NoticeDetailPage() {
         {/* 出欠回答 */}
         {notice.type === 'circular' && notice.requires_rsvp && (
           <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '15px', fontWeight: '500', color: '#1a1a1a', marginBottom: '10px' }}>
-              🙋 出欠を回答してください
-            </div>
-            {rsvp && (
-              <div style={{ background: '#E6F1FB', color: '#0C447C', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', marginBottom: '10px' }}>
-                現在の回答：<strong>{rsvpLabel(rsvp)}</strong>（変更可能）
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ fontSize: '15px', fontWeight: '500', color: '#1a1a1a' }}>
+                🙋 出欠を回答してください
               </div>
-            )}
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {(['attending', 'absent', 'undecided'] as const).map((answer) => (
-                <button
-                  key={answer}
-                  onClick={() => handleRsvp(answer)}
-                  disabled={rsvping}
-                  style={{
-                    flex: 1, padding: '12px 4px', fontSize: '14px', fontWeight: '500',
-                    background: rsvp === answer ? (answer === 'attending' ? '#3B6D11' : answer === 'absent' ? '#A32D2D' : '#185FA5') : '#f5f5f5',
-                    color: rsvp === answer ? '#fff' : '#555',
-                    border: '1.5px solid',
-                    borderColor: rsvp === answer ? 'transparent' : '#ddd',
-                    borderRadius: '8px', cursor: rsvping ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {answer === 'attending' ? '✅ 出席' : answer === 'absent' ? '❌ 欠席' : '🤔 未定'}
-                </button>
-              ))}
+              {notice.rsvp_deadline && (
+                <div style={{ fontSize: '12px', color: deadlinePassed ? '#A32D2D' : '#888', fontWeight: deadlinePassed ? '500' : '400' }}>
+                  {deadlinePassed ? '⚠️ 期限終了' : `期限：${formatDate(notice.rsvp_deadline)}`}
+                </div>
+              )}
             </div>
+
+            {deadlinePassed ? (
+              <div style={{ background: '#f5f5f5', color: '#888', padding: '14px', borderRadius: '8px', fontSize: '14px', textAlign: 'center' }}>
+                回答期限が終了しました
+                {rsvp && <span>（あなたの回答：<strong>{rsvpLabel(rsvp)}</strong>）</span>}
+              </div>
+            ) : (
+              <>
+                {rsvp && (
+                  <div style={{ background: '#E6F1FB', color: '#0C447C', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', marginBottom: '10px' }}>
+                    現在の回答：<strong>{rsvpLabel(rsvp)}</strong>（変更可能）
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {(['attending', 'absent', 'undecided'] as const).map((answer) => (
+                    <button
+                      key={answer}
+                      onClick={() => handleRsvp(answer)}
+                      disabled={rsvping}
+                      style={{
+                        flex: 1, padding: '12px 4px', fontSize: '14px', fontWeight: '500',
+                        background: rsvp === answer ? (answer === 'attending' ? '#3B6D11' : answer === 'absent' ? '#A32D2D' : '#185FA5') : '#f5f5f5',
+                        color: rsvp === answer ? '#fff' : '#555',
+                        border: '1.5px solid',
+                        borderColor: rsvp === answer ? 'transparent' : '#ddd',
+                        borderRadius: '8px', cursor: rsvping ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {answer === 'attending' ? '✅ 出席' : answer === 'absent' ? '❌ 欠席' : '🤔 未定'}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
