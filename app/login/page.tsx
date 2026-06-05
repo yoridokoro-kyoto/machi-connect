@@ -23,6 +23,18 @@ export default function LoginPage() {
     setLoading(false)
   }
 
+  const inputStyle = {
+    width: '100%',
+    padding: '14px 16px',
+    fontSize: '16px',
+    border: '1.5px solid #ddd',
+    borderRadius: '8px',
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+    color: '#1a1a1a',
+    background: '#fff',
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{ width: '100%', maxWidth: '400px', background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
@@ -45,7 +57,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="例：yamada@example.com"
-              style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '1.5px solid #ddd', borderRadius: '8px', outline: 'none' }}
+              style={inputStyle}
             />
           </div>
 
@@ -58,7 +70,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="パスワードを入力"
-              style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '1.5px solid #ddd', borderRadius: '8px', outline: 'none' }}
+              style={inputStyle}
             />
           </div>
 
