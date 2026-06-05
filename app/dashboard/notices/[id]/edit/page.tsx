@@ -49,7 +49,7 @@ export default function EditNoticePage() {
       .from('notices')
       .update({ title, content, type })
       .eq('id', params.id)
-    router.push(`/dashboard/notices/${params.id}`)
+    router.push('/dashboard')
   }
 
   if (loading) return (
@@ -62,7 +62,7 @@ export default function EditNoticePage() {
       {/* ヘッダー */}
       <div style={{ background: '#185FA5', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push(`/dashboard/notices/${params.id}`)}
           style={{ background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', padding: '0' }}
         >
           ←

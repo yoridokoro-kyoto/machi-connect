@@ -114,7 +114,7 @@ export default function NoticeDetailPage() {
       {/* ヘッダー */}
       <div style={{ background: '#185FA5', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/dashboard')}
           style={{ background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', padding: '0' }}
         >
           ←
