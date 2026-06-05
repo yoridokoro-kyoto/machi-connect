@@ -21,6 +21,8 @@ export default function NoticeDetailPage() {
   const [confirmed, setConfirmed] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const router = useRouter()
   const params = useParams()
 
@@ -32,6 +34,15 @@ export default function NoticeDetailPage() {
         return
       }
       setUserId(session.user.id)
+
+      // 管理者判定
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+      if (profile?.role === 'admin') setIsAdmin(true)
+
       fetchNotice(session.user.id)
     }
     checkAuth()
@@ -67,6 +78,15 @@ export default function NoticeDetailPage() {
     setConfirming(false)
   }
 
+  const handleDelete = async () => {
+    if (!notice) return
+    const ok = window.confirm('この投稿を削除しますか？\nこの操作は取り消せません。')
+    if (!ok) return
+    setDeleting(true)
+    await supabase.from('notices').delete().eq('id', notice.id)
+    router.push('/dashboard')
+  }
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
@@ -99,9 +119,28 @@ export default function NoticeDetailPage() {
         >
           ←
         </button>
-        <span style={{ color: '#fff', fontSize: '18px', fontWeight: '500' }}>
+        <span style={{ color: '#fff', fontSize: '18px', fontWeight: '500', flex: 1 }}>
           {notice.type === 'circular' ? '📋 回覧板' : '📢 お知らせ'}
         </span>
+
+        {/* 管理者メニュー */}
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => router.push(`/dashboard/notices/${notice.id}/edit`)}
+              style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', fontSize: '14px', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}
+            >
+              ✏️ 編集
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              style={{ background: 'rgba(220,50,50,0.7)', border: 'none', color: '#fff', fontSize: '14px', padding: '6px 12px', borderRadius: '6px', cursor: deleting ? 'not-allowed' : 'pointer' }}
+            >
+              🗑️ 削除
+            </button>
+          </div>
+        )}
       </div>
 
       {/* コンテンツ */}
