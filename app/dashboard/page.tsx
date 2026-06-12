@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'notice' | 'circular'>('notice')
+  const [profile, setProfile] = useState<{ role: string } | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -21,6 +22,13 @@ export default function DashboardPage() {
       const params = new URLSearchParams(window.location.search)
       const tab = params.get('tab')
       if (tab === 'circular' || tab === 'notice') setActiveTab(tab)
+
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+      setProfile(prof)
 
       const [noticesData, confirmedData] = await Promise.all([
         fetchNotices(),
@@ -39,6 +47,8 @@ export default function DashboardPage() {
   }
 
   const filtered = notices.filter((n) => n.type === activeTab)
+
+  const canPost = profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'officer'
 
   const getBadge = (notice: Notice) => {
     if (notice.type === 'notice') return { label: '新着', bg: '#E6F1FB', color: '#0C447C' }
@@ -70,19 +80,21 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* 投稿ボタン（管理者向け） */}
-      <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          onClick={() => router.push('/dashboard/admin')}
-          style={{
-            background: '#185FA5', color: '#fff', border: 'none',
-            padding: '10px 20px', borderRadius: '8px', fontSize: '14px',
-            fontWeight: '500', cursor: 'pointer',
-          }}
-        >
-          ＋ 投稿する
-        </button>
-      </div>
+      {/* 投稿ボタン（管理者・役員のみ） */}
+      {canPost && (
+        <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => router.push('/dashboard/admin')}
+            style={{
+              background: '#185FA5', color: '#fff', border: 'none',
+              padding: '10px 20px', borderRadius: '8px', fontSize: '14px',
+              fontWeight: '500', cursor: 'pointer',
+            }}
+          >
+            ＋ 投稿する
+          </button>
+        </div>
+      )}
 
       {/* コンテンツ */}
       <div style={{ padding: '0 16px 80px', maxWidth: '600px', margin: '0 auto' }}>
