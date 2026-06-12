@@ -128,8 +128,7 @@ export default function HouseholdsPage() {
   const handleDownloadTemplate = () => {
     const bom = '\uFEFF' // Excelで文字化けしないようにBOMを付ける
     const header = CSV_HEADERS.join(',')
-    const sample = '1組-1番,山田 太郎,京都市○○区○○町1-1,yamada@example.com,090-1234-5678'
-    const csv = bom + header + '\n' + sample + '\n'
+    const csv = bom + header + '\n'
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
