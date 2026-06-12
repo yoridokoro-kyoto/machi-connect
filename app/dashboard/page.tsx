@@ -1,18 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/shared/lib/supabase'
 import { useRouter } from 'next/navigation'
-
-type Notice = {
-  id: string
-  title: string
-  content: string
-  type: 'notice' | 'circular'
-  created_at: string
-  requires_confirmation: boolean
-  requires_rsvp: boolean
-}
+import { fetchNotices, fetchConfirmedIds } from '@/features/notices'
+import type { Notice } from '@/features/notices'
 
 export default function DashboardPage() {
   const [notices, setNotices] = useState<Notice[]>([])
@@ -22,33 +14,24 @@ export default function DashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
-      fetchAll(session.user.id)
+
+      const params = new URLSearchParams(window.location.search)
+      const tab = params.get('tab')
+      if (tab === 'circular' || tab === 'notice') setActiveTab(tab)
+
+      const [noticesData, confirmedData] = await Promise.all([
+        fetchNotices(),
+        fetchConfirmedIds(session.user.id),
+      ])
+      setNotices(noticesData)
+      setConfirmedIds(confirmedData)
+      setLoading(false)
     }
-    checkAuth()
-
-    // URLパラメータでタブを切り替え
-    const params = new URLSearchParams(window.location.search)
-    const tab = params.get('tab')
-    if (tab === 'circular' || tab === 'notice') setActiveTab(tab)
+    init()
   }, [])
-
-  const fetchAll = async (uid: string) => {
-    const [{ data: noticesData }, { data: confData }] = await Promise.all([
-      supabase.from('notices').select('*').order('created_at', { ascending: false }),
-      supabase.from('circular_confirmations').select('notice_id').eq('user_id', uid)
-    ])
-    setNotices(noticesData || [])
-    setConfirmedIds(new Set((confData || []).map((c: { notice_id: string }) => c.notice_id)))
-    setLoading(false)
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -58,68 +41,57 @@ export default function DashboardPage() {
   const filtered = notices.filter((n) => n.type === activeTab)
 
   const getBadge = (notice: Notice) => {
-    if (notice.type === 'notice') {
-      return { label: '新着', bg: '#E6F1FB', color: '#0C447C' }
-    }
+    if (notice.type === 'notice') return { label: '新着', bg: '#E6F1FB', color: '#0C447C' }
     const isConfirmed = confirmedIds.has(notice.id)
-    if (isConfirmed) {
-      return { label: '✅ 確認済み', bg: '#EAF3DE', color: '#3B6D11' }
-    }
-    if (!notice.requires_confirmation) {
-      return { label: '📖 読んでね', bg: '#FFF8E6', color: '#8B6000' }
-    }
+    if (isConfirmed) return { label: '確認済み', bg: '#EAF3DE', color: '#3B6D11' }
+    if (!notice.requires_confirmation) return { label: '読んでね', bg: '#FFF8E6', color: '#8B6000' }
     return { label: '要確認', bg: '#FCEBEB', color: '#A32D2D' }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
-
-      {/* ヘッダー */}
-      <div style={{ background: '#185FA5', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ color: '#fff', fontSize: '18px', fontWeight: '500' }}>まち・コネクト</div>
-          <div style={{ color: '#B5D4F4', fontSize: '13px' }}>○○町内会</div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => router.push('/dashboard/admin')}
-            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}
-          >
-            ＋ 投稿
-          </button>
-          <button
-            onClick={handleLogout}
-            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}
-          >
-            ログアウト
-          </button>
-        </div>
-      </div>
+    <div style={{ minHeight: '100%' }}>
 
       {/* タブ */}
       <div style={{ background: '#fff', display: 'flex', borderBottom: '0.5px solid #e0e0e0' }}>
+        {(['notice', 'circular'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              flex: 1, padding: '14px', fontSize: '15px', fontWeight: '500',
+              background: 'none', border: 'none',
+              borderBottom: activeTab === tab ? '3px solid #185FA5' : '3px solid transparent',
+              color: activeTab === tab ? '#185FA5' : '#888',
+              cursor: 'pointer',
+            }}
+          >
+            {tab === 'notice' ? '📢 お知らせ' : '📋 回覧板'}
+          </button>
+        ))}
+      </div>
+
+      {/* 投稿ボタン（管理者向け） */}
+      <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'flex-end' }}>
         <button
-          onClick={() => setActiveTab('notice')}
-          style={{ flex: 1, padding: '14px', fontSize: '15px', fontWeight: '500', background: 'none', border: 'none', borderBottom: activeTab === 'notice' ? '3px solid #185FA5' : '3px solid transparent', color: activeTab === 'notice' ? '#185FA5' : '#888', cursor: 'pointer' }}
+          onClick={() => router.push('/dashboard/admin')}
+          style={{
+            background: '#185FA5', color: '#fff', border: 'none',
+            padding: '10px 20px', borderRadius: '8px', fontSize: '14px',
+            fontWeight: '500', cursor: 'pointer',
+          }}
         >
-          📢 お知らせ
-        </button>
-        <button
-          onClick={() => setActiveTab('circular')}
-          style={{ flex: 1, padding: '14px', fontSize: '15px', fontWeight: '500', background: 'none', border: 'none', borderBottom: activeTab === 'circular' ? '3px solid #185FA5' : '3px solid transparent', color: activeTab === 'circular' ? '#185FA5' : '#888', cursor: 'pointer' }}
-        >
-          📋 回覧板
+          ＋ 投稿する
         </button>
       </div>
 
       {/* コンテンツ */}
-      <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto', paddingBottom: '80px' }}>
+      <div style={{ padding: '0 16px 80px', maxWidth: '600px', margin: '0 auto' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '48px', color: '#888' }}>読み込み中...</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px', color: '#888' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>{activeTab === 'notice' ? '📭' : '📋'}</div>
-            <div style={{ fontSize: '16px' }}>{activeTab === 'notice' ? 'お知らせはまだありません' : '回覧板はまだありません'}</div>
+            <div>{activeTab === 'notice' ? 'お知らせはまだありません' : '回覧板はまだありません'}</div>
           </div>
         ) : (
           filtered.map((notice) => {
@@ -129,34 +101,29 @@ export default function DashboardPage() {
               <div
                 key={notice.id}
                 onClick={() => router.push(`/dashboard/notices/${notice.id}`)}
-                style={{ background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '12px', border: `0.5px solid ${isConfirmed ? '#C0DD97' : '#e0e0e0'}`, cursor: 'pointer', opacity: isConfirmed ? 0.8 : 1 }}
+                style={{
+                  background: '#fff', borderRadius: '12px', padding: '16px',
+                  marginBottom: '12px',
+                  border: `0.5px solid ${isConfirmed ? '#C0DD97' : '#e0e0e0'}`,
+                  cursor: 'pointer', opacity: isConfirmed ? 0.8 : 1,
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ display: 'inline-block', background: badge.bg, color: badge.color, fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{
+                    background: badge.bg, color: badge.color,
+                    fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px',
+                  }}>
                     {badge.label}
                   </span>
                 </div>
-                <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a1a1a', marginBottom: '4px' }}>{notice.title}</div>
+                <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a1a1a', marginBottom: '4px' }}>
+                  {notice.title}
+                </div>
                 <div style={{ fontSize: '12px', color: '#888' }}>{formatDate(notice.created_at)}</div>
               </div>
             )
           })
         )}
-      </div>
-
-      {/* ナビゲーション */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '0.5px solid #e0e0e0', display: 'flex', justifyContent: 'space-around', padding: '10px 0 16px' }}>
-        {[
-          { icon: '📋', label: 'お知らせ', active: true },
-          { icon: '📅', label: '行事', active: false },
-          { icon: '👥', label: '世帯', active: false },
-          { icon: '⚙️', label: '設定', active: false },
-        ].map((item) => (
-          <div key={item.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', fontSize: '11px', color: item.active ? '#185FA5' : '#888' }}>
-            <span style={{ fontSize: '22px' }}>{item.icon}</span>
-            <span>{item.label}</span>
-          </div>
-        ))}
       </div>
     </div>
   )
