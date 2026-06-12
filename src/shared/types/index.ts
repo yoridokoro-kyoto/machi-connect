@@ -22,6 +22,7 @@ export type Organization = {
 // 機能キー
 export type FeatureKey =
   | 'notices'
+  | 'households'
   | 'safety'
   | 'survey'
   | 'messaging'

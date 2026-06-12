@@ -14,11 +14,12 @@ type NavItem = {
 // ナビゲーション項目の定義
 // 新機能追加時はここに追加するだけでサイドバーに反映される
 const NAV_ITEMS: NavItem[] = [
-  { key: 'notices',   label: 'お知らせ・回覧板', icon: '📋', href: '/dashboard' },
-  { key: 'safety',    label: '安否確認',          icon: '🆘', href: '/dashboard/safety' },
-  { key: 'survey',    label: 'アンケート・表決',  icon: '📊', href: '/dashboard/survey' },
-  { key: 'messaging', label: '役員間連絡',        icon: '💬', href: '/dashboard/messaging' },
-  { key: 'events',    label: '行事・当番',        icon: '📅', href: '/dashboard/events' },
+  { key: 'notices',    label: 'お知らせ・回覧板', icon: '📋', href: '/dashboard' },
+  { key: 'households', label: '世帯管理',         icon: '🏠', href: '/dashboard/households' },
+  { key: 'safety',     label: '安否確認',         icon: '🆘', href: '/dashboard/safety' },
+  { key: 'survey',     label: 'アンケート・表決', icon: '📊', href: '/dashboard/survey' },
+  { key: 'messaging',  label: '役員間連絡',       icon: '💬', href: '/dashboard/messaging' },
+  { key: 'events',     label: '行事・当番',       icon: '📅', href: '/dashboard/events' },
 ]
 
 const ADMIN_ITEMS: NavItem[] = [
