@@ -97,7 +97,7 @@ export default function DashboardPage() {
       )}
 
       {/* コンテンツ */}
-      <div style={{ padding: '0 16px 80px', maxWidth: '600px', margin: '0 auto' }}>
+      <div style={{ padding: '12px 16px 80px', maxWidth: '600px', margin: '0 auto' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '48px', color: '#888' }}>読み込み中...</div>
         ) : filtered.length === 0 ? (
