@@ -76,7 +76,6 @@ export default function HouseholdsPage() {
   }
 
   const handleSave = async () => {
-    if (!form.household_no.trim()) { setError('世帯番号を入力してください'); return }
     if (!form.name.trim()) { setError('氏名を入力してください'); return }
     if (!form.address.trim()) { setError('住所を入力してください'); return }
     setSaving(true)
@@ -148,7 +147,9 @@ export default function HouseholdsPage() {
         <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '0.5px solid #e0e0e0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
           <div>
-            <label style={labelStyle}>世帯番号 <span style={{ color: '#A32D2D' }}>*</span></label>
+            <label style={labelStyle}>
+              世帯番号 <span style={{ fontSize: '12px', color: '#888', fontWeight: '400' }}>（任意）</span>
+            </label>
             <input value={form.household_no} onChange={(e) => setForm({ ...form, household_no: e.target.value })}
               placeholder="例：1組-1番" style={inputStyle} />
           </div>
@@ -221,9 +222,11 @@ export default function HouseholdsPage() {
               {/* 世帯番号・氏名 */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div>
-                  <span style={{ background: '#E6F1FB', color: '#0C447C', fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px', marginRight: '8px' }}>
-                    {h.household_no}
-                  </span>
+                  {h.household_no && (
+                    <span style={{ background: '#E6F1FB', color: '#0C447C', fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '6px', marginRight: '8px' }}>
+                      {h.household_no}
+                    </span>
+                  )}
                   <span style={{ fontSize: '16px', fontWeight: '500', color: '#1a1a1a' }}>{h.name}</span>
                 </div>
               </div>
