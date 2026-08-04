@@ -15,7 +15,11 @@ type Props = {
 
 export function OnboardingWizard({ userId, onFinish }: Props) {
   const [steps] = useState<StepKey[]>(() => {
-    const showAddToHomeScreen = isIOSSafari() && !isStandalone()
+    if (isStandalone()) {
+      // 既にホーム画面から開いている＝追加案内は不要
+      return ['notification', 'done']
+    }
+    const showAddToHomeScreen = isIOSSafari()
     return ['welcome', ...(showAddToHomeScreen ? (['addToHomeScreen'] as const) : []), 'notification', 'done']
   })
   const [index, setIndex] = useState(0)
@@ -40,6 +44,13 @@ export function OnboardingWizard({ userId, onFinish }: Props) {
 
   const handleSkip = () => {
     finish()
+  }
+
+  // 「ホーム画面に追加」ステップを一旦閉じるだけの操作。
+  // markOnboardingSeenは呼ばない（まだ完了していないため、Safariタブに
+  // 戻ってきた時もホーム画面から開き直した時も、続きが正しく判定されるようにする）
+  const handlePause = () => {
+    onFinish()
   }
 
   const handleEnableNotifications = async () => {
@@ -113,6 +124,21 @@ export function OnboardingWizard({ userId, onFinish }: Props) {
               ホーム画面に追加すると、アプリのようにすぐ開けます。
             </div>
             <AddToHomeScreenGuide />
+            <div
+              style={{
+                marginTop: '20px',
+                background: '#FFF8E6',
+                border: '1px solid #F0DFA0',
+                borderRadius: '12px',
+                padding: '16px',
+                fontSize: '16px',
+                color: '#8B6000',
+                lineHeight: 1.6,
+                textAlign: 'center',
+              }}
+            >
+              📲 追加できたら、Safariを閉じて、ホーム画面の「まちコネ」アイコンから開き直してください
+            </div>
           </div>
         )}
 
@@ -166,7 +192,24 @@ export function OnboardingWizard({ userId, onFinish }: Props) {
 
       {/* 操作ボタン */}
       <div style={{ padding: '0 24px 32px', maxWidth: '480px', margin: '0 auto', width: '100%' }}>
-        {currentStep === 'notification' && isPushSupported() ? (
+        {currentStep === 'addToHomeScreen' ? (
+          <button
+            onClick={handlePause}
+            style={{
+              width: '100%',
+              padding: '18px',
+              fontSize: '18px',
+              fontWeight: '600',
+              background: '#185FA5',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            わかりました
+          </button>
+        ) : currentStep === 'notification' && isPushSupported() ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
               onClick={handleEnableNotifications}
