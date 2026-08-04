@@ -1,0 +1,24 @@
+{
+  "name": "まち・コネクト",
+  "short_name": "まちコネ",
+  "description": "町内会・自治会向けデジタル化サービス",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#185FA5",
+  "background_color": "#185FA5",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "_comment": "仮のプレースホルダー（単色）。本番用アイコンに差し替え要"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "_comment": "仮のプレースホルダー（単色）。本番用アイコンに差し替え要"
+    }
+  ]
+}
