@@ -68,9 +68,17 @@ src/
 - 投稿確認画面
 - サイドバーナビ（モバイルはハンバーガーメニュー、機能フラグ対応）
 - 世帯管理（追加/編集/削除、招待メール、CSV一括インポート・重複検知・上書き/スキップ選択）
+- RLS強化（フェーズ1・2）完了
+  - householdsテーブルにRLSが未設定だった問題を解消
+  - is_super_admin() / current_org_id() ヘルパー関数を作成
+  - households・notices作成時のorg_id自動セット（アプリ側修正）
+  - profiles・organization_featuresのSELECTポリシーを組織スコープに制限
+  - Supabase Studioで手動作成されていた古いポリシー2件（profilesテーブル、anon/publicロール向けにUSING (true)）を発見・削除。これにより未ログインユーザーでも全組織のプロフィール情報が読み取れていた漏洩経路を解消
 
 ## 未実装・次のアクション（ロードマップ）
 
+- notices・households・circular_confirmationsのUPDATE/DELETE、admin判定に組織一致（org_id）条件が入っていない問題（フェーズ3として要対応）
+- circular_confirmationsテーブルにorg_id列がなく、組織経由の絞り込みが構造的に難しい問題（列追加 or notices経由サブクエリでの設計判断が必要）
 - 世帯番号の自動採番（現状は任意入力のまま。連番か組ごとの連番か、実際の町内会の運用ヒアリング後に方式を決定する）
 - RSVP期限前リマインダー通知（3日前・1日前）
 - LINE通知連携の実装
@@ -86,6 +94,8 @@ src/
 - **TypeScriptエラー**: アーキテクチャの純粋さより動作を優先する。`any`型の使用も許容
 - **開発環境**: Windows + PowerShell。`&&`は使わず単一コマンドを分けて実行すること。作業ディレクトリの間違い（`C:\Users\user`のまま実行してしまう）に注意し、必ずプロジェクトフォルダ（`Desktop\machi-connect`）に移動してから実行する
 - **テストアカウント**: `admin@test.com`（`profiles`テーブルに`role: admin`で手動挿入済み、UUID: `7b5f872d-6517-49bc-a903-4246e5c287b8`）
+- **RLSポリシーの手動変更リスク**: RLSポリシーはコードだけでなくSupabase Studio側で手動変更される場合がある。定期的に`pg_policies`を直接確認し、コード管理外のポリシーが紛れ込んでいないかチェックすること（確認用SQLは`rls_audit_all_policies.sql`を参照）
+- **RLSポリシー作成時のroles確認**: ポリシー作成時は`roles`列（`authenticated` / `public` / `anon`）を必ず確認する。意図せず`public`/`anon`向けのポリシーが残っていると、ログイン不要でデータが読み取れる状態になる
 
 ## コーディング・進め方のルール
 
