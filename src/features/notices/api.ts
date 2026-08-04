@@ -1,6 +1,18 @@
 import { supabase } from '@/shared/lib/supabase'
 import type { Notice, RsvpStatus, RsvpRecord } from './types'
 
+// ログイン中ユーザーのorg_idを取得
+async function getCurrentOrgId(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return null
+  const { data } = await supabase
+    .from('profiles')
+    .select('org_id')
+    .eq('id', session.user.id)
+    .single()
+  return data?.org_id ?? null
+}
+
 // お知らせ一覧取得
 export async function fetchNotices(): Promise<Notice[]> {
   const { data } = await supabase
@@ -30,13 +42,14 @@ export async function createNotice(params: {
   requiresRsvp: boolean
   rsvpDeadline: string | null
 }) {
+  const organization_id = await getCurrentOrgId()
   const { error } = await supabase.from('notices').insert({
     title: params.title,
     content: params.content || '',
     image_url: params.imageUrls[0] || null,
     image_urls: params.imageUrls,
     type: params.type,
-    organization_id: null,
+    organization_id,
     requires_confirmation: params.type === 'circular' ? params.requiresConfirmation : false,
     requires_rsvp: params.type === 'circular' ? params.requiresRsvp : false,
     rsvp_deadline: params.type === 'circular' && params.requiresRsvp ? params.rsvpDeadline : null,
