@@ -12,13 +12,21 @@
 - サイドバーナビ（モバイルはハンバーガーメニュー、機能フラグ対応）
 - RLSフェーズ1・2完了（households未設定RLSの新設、is_super_admin()/current_org_id()ヘルパー関数、households・notices作成時のorg_id自動セット、profiles・organization_featuresの組織スコープ制限、Supabase Studio手動作成の重複ポリシー2件を発見・削除）
 - RLSフェーズ3完了（noticesのUPDATE/DELETE/INSERTに組織スコープ条件を追加、circular_confirmationsのSELECTをnotices経由のサブクエリで組織スコープ制限、org_id列は追加せず）
+- Web Push通知機能一式完了
+  - PWA基盤（manifest.json、Service Worker、アイコン仮設定）
+  - VAPIDキー・push_subscriptionsテーブル（RLS込み）
+  - 通知購読機能（NotificationToggle、ヘッダーは購読済み時のみ状態表示）
+  - 初回ログイン時のオンボーディングフロー（ようこそ→ホーム画面に追加→通知有効化→完了の4ステップ、iOS standalone判定で自動スキップ対応）
+  - 常設インストール案内バナー（ホーム画面未追加のiOS Safariユーザー向け）
+- 通知方式をLINEからWeb Pushへ変更（LINE無料枠が月1000通→200通に縮小したため。詳細はCLAUDE.mdのアーキテクチャ決定事項を参照）
 
 ## 未実装・次のアクション（ロードマップ）
 
 - 世帯番号の自動採番（現状は任意入力のまま。連番か組ごとの連番か、実際の町内会の運用ヒアリング後に方式を決定する）
 - RSVP期限前リマインダー通知（3日前・1日前）
-- PWA基盤構築（manifest.json、アイコン、Service Worker雛形）
-- Web Push通知の実装（VAPIDキー、push_subscriptionsテーブル＋RLS、通知許可・購読UI、高齢者向け「ホーム画面に追加」オンボーディング画面、お知らせ投稿時の即時送信、RSVPリマインダー用スケジューラー連携）
+- お知らせ投稿時の即時プッシュ送信（サーバー側Route Handler、SUPABASE_SERVICE_ROLE_KEYが必要）
+- RSVPリマインダー通知用のスケジューラー連携（Vercel Cron または Supabase pg_cron、方式は未決定）
+- 本番用アイコン画像への差し替え（現在は単色プレースホルダー）
 - イベント・当番管理機能
 - 緊急安全確認機能（補助金申請要件の1つ。管理者の意図的操作でのみ発動し、自動発火・定期送信は行わない設計とする。SMSコストはこもれび側の月額料金（5,000円/組織）に吸収し、町内会への従量課金・追加請求は行わない。SMS事業者はTwilio固定ではなく、実装着手時に複数事業者を比較検討する）
 - 電子回覧板（既読/未読トラッキング）・アンケート/電子投票・幹部連絡ツール（補助金申請要件の残り3項目）
