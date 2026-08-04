@@ -122,16 +122,16 @@ export async function answerRsvp(noticeId: string, userId: string, rsvp: RsvpSta
   }
 }
 
-// RSVP集計取得
+// RSVP集計取得（全プロフィールを母数に、未回答者も含める）
 export async function fetchRsvpSummary(noticeId: string): Promise<RsvpRecord[]> {
   const [{ data: rsvpData }, { data: profilesData }] = await Promise.all([
     supabase.from('circular_confirmations').select('user_id, rsvp').eq('notice_id', noticeId),
     supabase.from('profiles').select('id, name'),
   ])
-  const profileMap = new Map((profilesData || []).map((p: { id: string; name: string }) => [p.id, p.name]))
-  return (rsvpData || []).map((r: { user_id: string; rsvp: RsvpStatus | null }) => ({
-    user_id: r.user_id,
-    rsvp: r.rsvp,
-    name: profileMap.get(r.user_id) || '名前未設定',
+  const rsvpMap = new Map((rsvpData || []).map((r: { user_id: string; rsvp: RsvpStatus | null }) => [r.user_id, r.rsvp]))
+  return (profilesData || []).map((p: { id: string; name: string }) => ({
+    user_id: p.id,
+    rsvp: rsvpMap.get(p.id) ?? null,
+    name: p.name || '名前未設定',
   }))
 }

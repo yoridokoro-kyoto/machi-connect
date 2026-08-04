@@ -86,6 +86,7 @@ export default function RsvpSummaryPage() {
           { label: '✅ 出席', list: attending, bg: '#EAF3DE', color: '#3B6D11' },
           { label: '❌ 欠席', list: absent, bg: '#FCEBEB', color: '#A32D2D' },
           { label: '🤔 未定', list: undecided, bg: '#E6F1FB', color: '#0C447C' },
+          { label: '⚠️ 未回答', list: noAnswer, bg: '#F0F0F0', color: '#777777' },
         ].map(({ label, list, bg, color }) => list.length > 0 && (
           <div key={label} style={{ background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '12px', border: '0.5px solid #e0e0e0' }}>
             <div style={{ fontSize: '14px', fontWeight: '500', color, marginBottom: '10px' }}>{label}（{list.length}名）</div>
