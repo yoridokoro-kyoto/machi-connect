@@ -11,11 +11,10 @@
 - 世帯管理機能一式（追加/編集/削除、招待メール、CSV一括インポート・重複検知・上書き/スキップ選択）
 - サイドバーナビ（モバイルはハンバーガーメニュー、機能フラグ対応）
 - RLSフェーズ1・2完了（households未設定RLSの新設、is_super_admin()/current_org_id()ヘルパー関数、households・notices作成時のorg_id自動セット、profiles・organization_featuresの組織スコープ制限、Supabase Studio手動作成の重複ポリシー2件を発見・削除）
+- RLSフェーズ3完了（noticesのUPDATE/DELETE/INSERTに組織スコープ条件を追加、circular_confirmationsのSELECTをnotices経由のサブクエリで組織スコープ制限、org_id列は追加せず）
 
 ## 未実装・次のアクション（ロードマップ）
 
-- notices・households・circular_confirmationsのUPDATE/DELETE、admin判定に組織一致（org_id）条件が入っていない問題（フェーズ3として要対応）
-- circular_confirmationsテーブルにorg_id列がなく、組織経由の絞り込みが構造的に難しい問題（列追加 or notices経由サブクエリでの設計判断が必要）
 - 世帯番号の自動採番（現状は任意入力のまま。連番か組ごとの連番か、実際の町内会の運用ヒアリング後に方式を決定する）
 - RSVP期限前リマインダー通知（3日前・1日前）
 - LINE通知連携の実装
