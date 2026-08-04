@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/shared/lib/supabase'
 import { Sidebar } from '@/shared/components/Sidebar'
+import { NotificationToggle } from '@/shared/components/NotificationToggle'
 import type { FeatureKey, Profile } from '@/shared/types'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -114,6 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div style={{ color: '#B5D4F4', fontSize: '12px' }}>○○町内会</div>
           </div>
           <div style={{ flex: 1 }} />
+          <NotificationToggle />
           <button
             onClick={handleLogout}
             style={{
