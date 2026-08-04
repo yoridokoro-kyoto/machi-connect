@@ -5,18 +5,27 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/shared/lib/supabase'
 import { Sidebar } from '@/shared/components/Sidebar'
 import { NotificationToggle } from '@/shared/components/NotificationToggle'
+import { InstallPromptBanner } from '@/shared/components/InstallPromptBanner'
+import { OnboardingWizard, hasSeenOnboarding } from '@/features/onboarding'
 import type { FeatureKey, Profile } from '@/shared/types'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [enabledFeatures, setEnabledFeatures] = useState<Set<FeatureKey>>()
+  const [userId, setUserId] = useState<string | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
+
+      setUserId(session.user.id)
+      if (!hasSeenOnboarding(session.user.id)) {
+        setShowOnboarding(true)
+      }
 
       const { data: prof } = await supabase
         .from('profiles')
@@ -132,11 +141,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </div>
 
+        <InstallPromptBanner />
+
         {/* ページコンテンツ */}
         <div style={{ flex: 1, overflowY: 'auto', background: '#f0f4f8' }}>
           {children}
         </div>
       </div>
+
+      {showOnboarding && userId && (
+        <OnboardingWizard userId={userId} onFinish={() => setShowOnboarding(false)} />
+      )}
 
       <style>{`
         @media (min-width: 768px) {
